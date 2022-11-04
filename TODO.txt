@@ -1,0 +1,4 @@
+Simple
+  send rear video (no audio) from iPhone to Quest Pro
+  put video in <a-video> element
+  
