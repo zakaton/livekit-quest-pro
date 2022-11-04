@@ -1,0 +1,31 @@
+<html>
+  <head>
+    <title>Camera | Simple | LiveKit x Quest Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@1.5.0/dist/livekit-client.umd.min.js"></script>
+  </head>
+
+  <body>
+    <h1>Camera | Simple | LiveKit x Quest Pro</h1>
+
+    <button id="joinRoomButton" onclick="joinRoom()">Join Room</button>
+  </body>
+
+  <script>
+    const liveKitServerIP = "192.168.4.22";
+    const liveKitServerUrl = `ws://${liveKitServerIP}:7880`;
+    const liveKitAccessToken =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2Njc2NTUzNzEsImlzcyI6ImRldmtleSIsIm5hbWUiOiJjYW1lcmEiLCJuYmYiOjE2Njc1Njg5NzEsInN1YiI6ImNhbWVyYSIsInZpZGVvIjp7InJvb20iOiJteS1maXJzdC1yb29tIiwicm9vbUpvaW4iOnRydWV9fQ.J6f1tJnN6lGAA5kBFlHexs7_pwE6Tnu54krAqH-f5Fk";
+    const liveKitRoom = "my-first-room";
+
+    const room = new LivekitClient.Room();
+
+    const joinRoomButton = document.getElementById("joinRoomButton");
+    async function joinRoom() {
+      console.log("joining room...")
+      await room.connect(liveKitServerUrl, liveKitAccessToken);
+      console.log("connected to room", room.name);
+      
+      room.localParticipant.setCameraEnabled(true)
+    }
+  </script>
+</html>
