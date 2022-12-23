@@ -3,16 +3,133 @@
     <title>Quest Pro | Simple | LiveKit x Quest Pro</title>
     <script src="/src/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/livekit-client@1.5.0/dist/livekit-client.umd.min.js"></script>
+    <script src="https://rawgit.com/blairmacintyre/aframe-look-at-billboard-component/master/dist/aframe-look-at-billboard-component.min.js"></script>
+    <script src="https://gftruj.github.io/hand.tracking.controls.extras/dist/aframe-hand-tracking-controls-extras.js"></script>
+    <script src="/livekitConfig.js"></script>
+    <script src="/src/components/hand-tracking-controls-controller-component.js"></script>
   </head>
-  
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    #overlay {
+      position: absolute;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    #overlay .clickable {
+      pointer-events: all;
+    }
+    #overlay .hidden {
+      display: none;
+    }
+  </style>
   <body>
-    
+    <div id="overlay">
+      <button id="joinRoomButton" onclick="joinRoom()" class="clickable">
+        Join Room
+      </button>
+    </div>
+
+    <a-scene hand-tracking-controls-controller="target-entities: a-video;">
+      <a-assets></a-assets>
+
+      <a-camera></a-camera>
+
+      <a-entity id="leftHand" hand-tracking-controls="hand: left" hand-tracking-extras visible="true"></a-entity>
+      <a-entity id="rightHand" hand-tracking-controls="hand: right" hand-tracking-extras visible="true"></a-entity>
+    </a-scene>
   </body>
-  
+
   <script>
-    const liveKitServerIP = "192.168.4.22";
-    const liveKitServerUrl = `ws://${liveKitServerIP}:7880`
-    const liveKitAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2Njc2NTU0MDUsImlzcyI6ImRldmtleSIsIm5hbWUiOiJxdWVzdC1wcm8iLCJuYmYiOjE2Njc1NjkwMDUsInN1YiI6InF1ZXN0LXBybyIsInZpZGVvIjp7InJvb20iOiJteS1maXJzdC1yb29tIiwicm9vbUpvaW4iOnRydWV9fQ.fX1yiUPf3cU76HWCad13w6MlVPhtzrHgxft1hAIh8QI"
-    const liveKitRoom = "my-first-room"
+    const sceneEntity = document.querySelector("a-scene");
+    const assetsEntity = document.querySelector("a-assets");
+    const cameraEntity = document.querySelector("a-camera");
+    let videoScale = 0.2;
+
+    const room = new LivekitClient.Room();
+    room
+      .on(LivekitClient.RoomEvent.Connected, handleConnected)
+      .on(LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed)
+      .on(LivekitClient.RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
+
+    function handleConnected() {
+      joinRoomButton.remove();
+    }
+    async function handleTrackSubscribed(track) {
+      console.log(track);
+      videoElement = track.attach();
+      videoElement.autoplay = true;
+      videoElement.muted = true;
+      videoElement.play();
+      videoElement.id = `remoteVideo-${track.sid}`;
+      videoElement.dataset.sid = track.sid;
+      assetsEntity.appendChild(videoElement);
+      videoElement.addEventListener(
+        "playing",
+        (event) => {
+          videoEntity = document.createElement("a-video");
+          videoEntity.dataset.sid = track.sid;
+          videoEntity.setAttribute("src", `#${videoElement.id}`);
+          
+          const videoEntityPosition = cameraEntity.object3D.position.clone()
+          const offsetVector = new THREE.Vector3(0, 0, -0.5);
+          offsetVector.applyQuaternion(cameraEntity.object3D.quaternion)
+          videoEntityPosition.add(offsetVector)
+          {
+            const {x, y, z} = videoEntityPosition
+            videoEntity.setAttribute("position", `${x} ${y} ${z}`);
+          }
+          
+          const videoEntityRotation = cameraEntity.object3D.rotation.clone()
+          {
+            let {x, y, z} = videoEntityRotation
+            x = THREE.MathUtils.radToDeg(x)
+            y = THREE.MathUtils.radToDeg(y)
+            z = THREE.MathUtils.radToDeg(z)
+            videoEntity.setAttribute("rotation", `${x} ${y} ${z}`);
+          }
+
+          sceneEntity.appendChild(videoEntity);
+
+          const updateVideoSize = () => {
+            const width = event.target.videoWidth;
+            const height = event.target.videoHeight;
+            const aspectRatio = width / height;
+            videoEntity.setAttribute("width", aspectRatio * videoScale);
+            videoEntity.setAttribute("height", videoScale);
+          };
+
+          videoElement.addEventListener("resize", () => {
+            updateVideoSize();
+          });
+          updateVideoSize();
+        },
+        { once: true }
+      );
+    }
+    function handleTrackUnsubscribed(track) {
+      track.detach();
+      document
+        .querySelectorAll(`[data-sid="${track.sid}"]`)
+        .forEach((element) => element.remove());
+    }
+
+    const joinRoomButton = document.getElementById("joinRoomButton");
+    const cameraVideo = document.getElementById("cameraVideo");
+    async function joinRoom() {
+      console.log("joining room...");
+      await room.connect(
+        livekitConfig.url,
+        livekitConfig.accessTokens.questPro
+      );
+      console.log("connected to room", room.name);
+    }
+    
+    //joinRoom();
   </script>
 </html>
