@@ -1,4 +1,5 @@
+https://docs.livekit.io/client-sdk-js/index.html
+
 Simple
-  send rear video (no audio) from iPhone to Quest Pro
-  put video in <a-video> element
+  fix camera issue
   
